@@ -3,10 +3,12 @@ package gonyaa
 import (
 	"fmt"
 	"github.com/gocolly/colly"
+	"net/url"
 )
 
 type NyaaClient struct {
-	Colly	*colly.Collector
+	url	string
+	colly	*colly.Collector
 }
 
 type NyaaResults struct {
@@ -24,13 +26,14 @@ func NewClient(url string) *NyaaClient {
 		colly.AllowedDomains(url),
 	)
 	return &NyaaClient{
-		Colly: c,
+		colly: c,
 	}
 }
 
 func (c *NyaaClient) Search(query string, parameters string) NyaaResults {
-	c.Colly.OnHTML("tr", func(e *colly.HTMLElement) {
+	c.colly.OnHTML("tr", func(e *colly.HTMLElement) {
 		fmt.Println(e)
 	})
+	c.colly.Visit("https://" + c.url + "?q=" + url.QueryEscape(query) + parameters)
 	return NyaaResults{}
 } 
