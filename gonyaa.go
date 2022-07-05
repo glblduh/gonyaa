@@ -1,9 +1,11 @@
-package gonyaa
+package main
 
 import (
-	"fmt"
-	"github.com/gocolly/colly"
+	"errors"
 	"net/url"
+	"strconv"
+
+	"github.com/gocolly/colly"
 )
 
 type NyaaClient struct {
@@ -12,28 +14,62 @@ type NyaaClient struct {
 }
 
 type NyaaResults struct {
-	Catergory	string
+	Category	string
 	Name		string
 	Size		string
 	Date		string
 	Seeders		int
 	Leechers	int
 	Downloads	int
+	Magnet		string
 }
 
-func NewClient(url string) *NyaaClient {
-	c := colly.NewCollector(
-		colly.AllowedDomains(url),
-	)
+func NewClient(URL string) (*NyaaClient, error) {
+	c := colly.NewCollector()
+
+	_, urlErr := url.ParseRequestURI(URL)
+	if urlErr != nil {
+		return nil, errors.New("Invalid URL")
+	}
+
 	return &NyaaClient{
 		colly: c,
-	}
+		url: URL,
+	}, nil
 }
 
-func (c *NyaaClient) Search(query string, parameters string) NyaaResults {
+func (c *NyaaClient) Search(query string, parameters string) []NyaaResults {
+	var results []NyaaResults
 	c.colly.OnHTML("tr", func(e *colly.HTMLElement) {
-		fmt.Println(e.Text)	
+		var tempRes NyaaResults
+		categoryname := e.ChildAttrs("a", "title")
+		if len(categoryname) == 0 {
+			return
+		}
+		tempRes.Category = categoryname[0]
+		tempRes.Name = categoryname[len(categoryname)-1]
+		e.ForEach(".text-center", func(i int, f *colly.HTMLElement) {
+			switch(i) {
+				case 0:
+					torrentmagnet := f.ChildAttrs("a", "href")
+					tempRes.Magnet = torrentmagnet[1]
+				case 1:
+					tempRes.Size = f.Text
+				case 2:
+					tempRes.Date = f.Text
+				case 3:
+					num, _ := strconv.Atoi(f.Text)
+					tempRes.Seeders = num
+				case 4:
+					num, _ := strconv.Atoi(f.Text)
+					tempRes.Leechers = num
+				case 5:
+					num, _ := strconv.Atoi(f.Text)
+					tempRes.Downloads = num
+			}
+		})
+		results = append(results, tempRes)
 	})
-	c.colly.Visit("https://" + c.url + "?q=" + url.QueryEscape(query) + parameters)
-	return NyaaResults{}
+	c.colly.Visit(c.url + "?q=" + query + parameters)
+	return results
 } 
