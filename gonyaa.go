@@ -32,7 +32,7 @@ func NewClient(url string) *NyaaClient {
 
 func (c *NyaaClient) Search(query string, parameters string) NyaaResults {
 	c.colly.OnHTML("tr", func(e *colly.HTMLElement) {
-		fmt.Println(e)
+		fmt.Println(e.Text)	
 	})
 	c.colly.Visit("https://" + c.url + "?q=" + url.QueryEscape(query) + parameters)
 	return NyaaResults{}
