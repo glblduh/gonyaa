@@ -70,6 +70,6 @@ func (c *NyaaClient) Search(query string, parameters string) []NyaaResults {
 		})
 		results = append(results, tempRes)
 	})
-	c.colly.Visit(c.url + "?q=" + query + parameters)
+	c.colly.Visit(c.url + "?q=" + url.QueryEscape(query) + parameters)
 	return results
 } 
